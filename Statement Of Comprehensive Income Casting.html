@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Income & Expenses Tracker</title>
+<style>
+  :root{
+    --bg: #f5f5f5;
+    --panel: #ffffff;
+    --accent: #4CAF50;
+    --accent-2: #45a049;
+    --text: #222;
+    --muted: #666;
+    --income-color: #4CAF50;
+    --expense-color: #f44336;
+    --net-positive: #2196F3;
+    --net-negative: #ff9800;
+  }
+  
+  /* Mood themes (will be applied by JS) */
+  body { 
+    font-family: 'Segoe UI', Arial, sans-serif; 
+    margin: 0; 
+    background: var(--bg); 
+    color: var(--text); 
+    transition: background-color 0.3s, color 0.3s;
+  }
+  
+  header { 
+    background: var(--accent); 
+    color: white; 
+    text-align: center; 
+    padding: 1em; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    position: relative;
+  }
+  
+  .theme-selector {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+  }
+  
+  .theme-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid white;
+    cursor: pointer;
+  }
+  
+  .tabs { 
+    display: flex; 
+    justify-content: space-around; 
+    background: #333; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  
+  .tab { 
+    flex: 1; 
+    text-align: center; 
+    color: white; 
+    padding: 12px; 
+    cursor: pointer; 
+    transition: background 0.3s;
+  }
+  
+  .tab.active { 
+    background: var(--accent); 
+    font-weight: bold;
+  }
+  
+  .tab:hover:not(.active) {
+    background: rgba(255,255,255,0.1);
+  }
+  
+  .content { 
+    display: none; 
+    padding: 20px; 
+    animation: fadeIn 0.3s;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .content.active { 
+    display: block; 
+  }
+  
+  .input-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  
+  input[type=number] { 
+    padding: 12px; 
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex: 1;
+    font-size: 1rem;
+  }
+  
+  button { 
+    padding: 12px 20px; 
+    cursor: pointer; 
+    border: none;
+    border-radius: 4px;
+    font-weight: bold;
+    transition: all 0.2s;
+  }
+  
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background: var(--accent-2);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  }
+  
+  table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 10px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    background: var(--panel);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  th, td { 
+    border: 1px solid #ddd; 
+    padding: 12px; 
+    text-align: center; 
+  }
+  
+  th { 
+    background: #f5f5f5; 
+    font-weight: bold;
+  }
+  
+  tr:nth-child(even) {
+    background: rgba(0,0,0,0.02);
+  }
+  
+  .summary-box { 
+    background: var(--panel); 
+    padding: 25px; 
+    border-radius: 12px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+  }
+  
+  .print-btn { 
+    background: var(--accent); 
+    color: white; 
+    border: none; 
+    padding: 12px 20px;
+    font-size: 1rem;
+    margin-top: 15px;
+    width: 100%;
+  }
+  
+  .action-btn { 
+    border: none; 
+    background: none; 
+    cursor: pointer; 
+    color: var(--accent); 
+    font-weight: bold; 
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+  
+  .action-btn:hover {
+    background: rgba(0,0,0,0.05);
+  }
+  
+  .action-btn.delete { 
+    color: #e74c3c; 
+  }
+  
+  .action-btn.delete:hover {
+    background: rgba(231, 76, 60, 0.1);
+  }
+  
+  footer { 
+    text-align: center; 
+    padding: 20px; 
+    color: var(--muted); 
+    font-size: 0.9em; 
+    margin-top: 20px;
+  }
+  
+  .credit { 
+    user-select: none; 
+    -webkit-user-select: none; 
+    pointer-events: none; 
+    font-size: 0.8rem;
+    opacity: 0.7;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  
+  .empty-state img {
+    max-width: 150px;
+    opacity: 0.5;
+    margin-bottom: 20px;
+  }
+  
+  /* Enhanced Summary Styles */
+  .summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .summary-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--accent);
+  }
+  
+  .summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+  }
+  
+  .stat-card {
+    background: var(--panel);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    text-align: center;
+    transition: transform 0.3s;
+  }
+  
+  .stat-card:hover {
+    transform: translateY(-5px);
+  }
+  
+  .stat-card.income {
+    border-left: 4px solid var(--income-color);
+  }
+  
+  .stat-card.expense {
+    border-left: 4px solid var(--expense-color);
+  }
+  
+  .stat-card.net {
+    border-left: 4px solid var(--net-positive);
+  }
+  
+  .stat-card.net.negative {
+    border-left: 4px solid var(--net-negative);
+  }
+  
+  .stat-label {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  
+  .stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .stat-value.income {
+    color: var(--income-color);
+  }
+  
+  .stat-value.expense {
+    color: var(--expense-color);
+  }
+  
+  .stat-value.net {
+    color: var(--net-positive);
+  }
+  
+  .stat-value.net.negative {
+    color: var(--net-negative);
+  }
+  
+  .stat-subvalue {
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  
+  /* Comparison Chart - FIXED */
+  .comparison-chart {
+    margin: 25px 0;
+    background: var(--panel);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+  }
+  
+  .chart-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 20px;
+    text-align: center;
+    color: var(--accent);
+  }
+  
+  .chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    height: 200px;
+    gap: 40px;
+    margin: 20px 0;
+    position: relative;
+  }
+  
+  .chart-bar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+  }
+  
+  .chart-bar {
+    width: 60px;
+    border-radius: 6px 6px 0 0;
+    transition: height 1s ease-out;
+    position: relative;
+    min-height: 10px;
+  }
+  
+  .chart-bar.income {
+    background: linear-gradient(to top, var(--income-color), #66bb6a);
+    box-shadow: 0 4px 8px rgba(76, 175, 80, 0.3);
+  }
+  
+  .chart-bar.expense {
+    background: linear-gradient(to top, var(--expense-color), #ef5350);
+    box-shadow: 0 4px 8px rgba(244, 67, 54, 0.3);
+  }
+  
+  .chart-bar-label {
+    margin-top: 15px;
+    font-weight: bold;
+    font-size: 1rem;
+    text-align: center;
+  }
+  
+  .chart-bar-value {
+    position: absolute;
+    top: -30px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 4px 8px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+  }
+  
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 500;
+  }
+  
+  .legend-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+  }
+  
+  .legend-color.income {
+    background: var(--income-color);
+  }
+  
+  .legend-color.expense {
+    background: var(--expense-color);
+  }
+  
+  .balance-indicator {
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(33, 150, 243, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid var(--net-positive);
+  }
+  
+  .balance-indicator.negative {
+    background: rgba(255, 152, 0, 0.1);
+    border-left: 4px solid var(--net-negative);
+  }
+  
+  .balance-text {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+  
+  .balance-amount {
+    font-size: 1.4rem;
+    font-weight: bold;
+  }
+  
+  .balance-positive {
+    color: var(--net-positive);
+  }
+  
+  .balance-negative {
+    color: var(--net-negative);
+  }
+  
+  /* print title styling: the report title input will display as a heading on print */
+  .report-title-input { 
+    width: 100%; 
+    padding: 12px; 
+    font-size: 1rem; 
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+  
+  @media print {
+    .tabs, .print-btn, input[type=number], button, .action-btn, .theme-selector { 
+      display: none !important; 
+    }
+    
+    header { 
+      background: white; 
+      color: black; 
+      border-bottom: 2px solid #000; 
+    }
+    
+    body { 
+      background: white; 
+    }
+    
+    .report-title-input { 
+      display: block; 
+      border: none; 
+      font-size: 20px; 
+      font-weight: bold; 
+      text-align: center; 
+      background: white;
+    }
+    
+    .report-title-input::placeholder { 
+      color: #999; 
+    }
+    
+    footer { 
+      position: fixed; 
+      bottom: 10px; 
+      left: 0; 
+      right: 0; 
+    }
+    
+    .stat-card, .comparison-chart {
+      box-shadow: none;
+      border: 1px solid #ddd;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .tabs {
+      flex-direction: column;
+    }
+    
+    .input-group {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    
+    .theme-selector {
+      position: static;
+      justify-content: center;
+      margin-top: 10px;
+    }
+    
+    table {
+      font-size: 0.9rem;
+    }
+    
+    th, td {
+      padding: 8px 5px;
+    }
+    
+    .summary-stats {
+      grid-template-columns: 1fr;
+    }
+    
+    .chart-container {
+      height: 150px;
+      gap: 20px;
+    }
+    
+    .chart-bar {
+      width: 40px;
+    }
+    
+    .chart-bar-value {
+      font-size: 0.8rem;
+      top: -25px;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h2 id="appTitle">Income & Expenses Tracker</h2>
+  <div class="theme-selector">
+    <div class="theme-btn" data-theme="professional" style="background: #2b3a67;" title="Professional"></div>
+    <div class="theme-btn" data-theme="happy" style="background: #ffd54f;" title="Happy"></div>
+    <div class="theme-btn" data-theme="calm" style="background: #6fb3d2;" title="Calm"></div>
+    <div class="theme-btn" data-theme="energetic" style="background: #ff7043;" title="Energetic"></div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" id="tabIncome">Income</div>
+  <div class="tab" id="tabExpenses">Expenses</div>
+  <div class="tab" id="tabSummary">Summary</div>
+</div>
+
+<div id="income" class="content active">
+  <div class="input-group">
+    <input type="number" id="incomeAmount" placeholder="Enter amount" />
+    <button id="btnAddIncome" class="btn-primary">Add</button>
+  </div>
+  
+  <div id="incomeTableContainer">
+    <table id="incomeTable">
+      <tr>
+        <th>#</th>
+        <th id="thAmount">Amount (<span id="currencyLabel">RM</span>)</th>
+        <th>Rounded (<span id="currencyLabel2">RM</span> million)</th>
+        <th>Action</th>
+      </tr>
+    </table>
+    <div id="incomeEmptyState" class="empty-state" style="display: none;">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M42.6667 21.3333H53.3334M53.3334 21.3333V32.0001M53.3334 21.3333L42.6667 32.0001M32 53.3334H10.6667C9.93647 53.3334 9.24304 53.0424 8.7439 52.5432C8.24476 52.0441 7.95374 51.3507 7.95374 50.6204V13.3797C7.95374 12.6495 8.24476 11.9561 8.7439 11.4569C9.24304 10.9578 9.93647 10.6667 10.6667 10.6667H35.0933L42.6667 18.2401V32.0001M32 42.6667V53.3334M21.3333 42.6667H42.6667" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>No Income Records Yet</h3>
+      <p>Add your first income record using the form above</p>
+    </div>
+  </div>
+</div>
+
+<div id="expenses" class="content">
+  <div class="input-group">
+    <input type="number" id="expenseAmount" placeholder="Enter amount" />
+    <button id="btnAddExpense" class="btn-primary">Add</button>
+  </div>
+  
+  <div id="expenseTableContainer">
+    <table id="expenseTable">
+      <tr>
+        <th>#</th>
+        <th id="thAmount2">Amount (<span id="currencyLabel3">RM</span>)</th>
+        <th>Rounded (<span id="currencyLabel4">RM</span> million)</th>
+        <th>Action</th>
+      </tr>
+    </table>
+    <div id="expenseEmptyState" class="empty-state" style="display: none;">
+      <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M42.6667 21.3333H53.3334M53.3334 21.3333V32.0001M53.3334 21.3333L42.6667 32.0001M32 53.3334H10.6667C9.93647 53.3334 9.24304 53.0424 8.7439 52.5432C8.24476 52.0441 7.95374 51.3507 7.95374 50.6204V13.3797C7.95374 12.6495 8.24476 11.9561 8.7439 11.4569C9.24304 10.9578 9.93647 10.6667 10.6667 10.6667H35.0933L42.6667 18.2401V32.0001M32 42.6667V53.3334M21.3333 42.6667H42.6667" stroke="#666" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h3>No Expense Records Yet</h3>
+      <p>Add your first expense record using the form above</p>
+    </div>
+  </div>
+</div>
+
+<div id="summary" class="content">
+  <div class="summary-box">
+    <div class="summary-header">
+      <div class="summary-title" id="labelSummary">Financial Summary</div>
+    </div>
+
+    <!-- Report title (editable onscreen, prints as heading) -->
+    <input type="text" id="reportTitle" class="report-title-input" placeholder="Enter report title for print (e.g. Laporan Kewangan November 2025)" />
+
+    <!-- Balance Indicator -->
+    <div class="balance-indicator" id="balanceIndicator">
+      <div class="balance-text">Current Financial Status</div>
+      <div class="balance-amount" id="balanceAmount">RM 0.00</div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="summary-stats">
+      <div class="stat-card income">
+        <div class="stat-label">Total Income</div>
+        <div class="stat-value income" id="totalIncomeStat">RM 0.00</div>
+        <div class="stat-subvalue" id="totalIncomeMillionStat">RM0.00 m</div>
+      </div>
+      <div class="stat-card expense">
+        <div class="stat-label">Total Expenses</div>
+        <div class="stat-value expense" id="totalExpensesStat">RM 0.00</div>
+        <div class="stat-subvalue" id="totalExpensesMillionStat">RM0.00 m</div>
+      </div>
+      <div class="stat-card net">
+        <div class="stat-label">Net Balance</div>
+        <div class="stat-value net" id="netTotalStat">RM 0.00</div>
+        <div class="stat-subvalue" id="netTotalMillionStat">RM0.00 m</div>
+      </div>
+    </div>
+
+    <!-- Comparison Chart - FIXED -->
+    <div class="comparison-chart">
+      <div class="chart-title">Income vs Expenses Comparison</div>
+      <div class="chart-container">
+        <div class="chart-bar-wrapper">
+          <div class="chart-bar income" id="chartIncomeBar">
+            <div class="chart-bar-value" id="chartIncomeValue">RM 0</div>
+          </div>
+          <div class="chart-bar-label">Income</div>
+        </div>
+        <div class="chart-bar-wrapper">
+          <div class="chart-bar expense" id="chartExpenseBar">
+            <div class="chart-bar-value" id="chartExpenseValue">RM 0</div>
+          </div>
+          <div class="chart-bar-label">Expenses</div>
+        </div>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item">
+          <div class="legend-color income"></div>
+          <span>Income</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color expense"></div>
+          <span>Expenses</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed Table -->
+    <table>
+      <tr>
+        <th>Category</th>
+        <th id="thTotalLabel">Amount (<span id="currencyLabel5">RM</span>)</th>
+        <th>Rounded (<span id="currencyLabel6">RM</span> million)</th>
+      </tr>
+      <tr>
+        <td id="labelTotalIncome">Total Income</td>
+        <td id="totalIncome">RM 0.00</td>
+        <td id="totalIncomeMillion">RM0.00 m</td>
+      </tr>
+      <tr>
+        <td id="labelTotalExpenses">Total Expenses</td>
+        <td id="totalExpenses">RM 0.00</td>
+        <td id="totalExpensesMillion">RM0.00 m</td>
+      </tr>
+      <tr>
+        <td><strong id="labelNet">Net Total</strong></td>
+        <td id="netTotal">RM 0.00</td>
+        <td id="netTotalMillion">RM0.00 m</td>
+      </tr>
+    </table><br>
+
+    <button class="print-btn" id="btnPrint">Print Report</button>
+  </div>
+</div>
+
+<footer>
+  <div id="credit" class="credit" aria-hidden="true"></div>
+</footer>
+
+<script>
+/* =====================
+   Configuration (edit here)
+   ===================== */
+const settings = {
+  // language key — change to 'en' or 'ms' or add more packs below
+  lang: 'en',
+  // currency label/symbol
+  currency: 'RM',
+  // mood/theme: 'happy', 'calm', 'energetic', 'professional'
+  mood: 'professional'
+};
+
+const LANG = {
+  en: {
+    appTitle: 'Income & Expenses Tracker',
+    addIncome: 'Add Income',
+    addExpense: 'Add Expense',
+    summary: 'Financial Summary',
+    totalIncome: 'Total Income',
+    totalExpenses: 'Total Expenses',
+    netTotal: 'Net Total',
+    add: 'Add',
+    enterAmount: 'Enter amount',
+    printReport: 'Print Report'
+  },
+  ms: {
+    appTitle: 'Pendapatan & Perbelanjaan',
+    addIncome: 'Tambah Pendapatan',
+    addExpense: 'Tambah Perbelanjaan',
+    summary: 'Ringkasan Kewangan',
+    totalIncome: 'Jumlah Pendapatan',
+    totalExpenses: 'Jumlah Perbelanjaan',
+    netTotal: 'Jumlah Bersih',
+    add: 'Tambah',
+    enterAmount: 'Masukkan amaun',
+    printReport: 'Cetak Laporan'
+  }
+};
+
+/* =====================
+   Theme presets (edit mood name here)
+   ===================== */
+const THEMES = {
+  happy: {
+    '--bg': '#fffbe6', '--panel': '#ffffff', '--accent': '#ffd54f', '--accent-2': '#ffca28', '--text': '#2b2b2b', '--muted': '#555',
+    '--income-color': '#4CAF50', '--expense-color': '#f44336', '--net-positive': '#2196F3', '--net-negative': '#ff9800'
+  },
+  calm: {
+    '--bg': '#f0f7fb', '--panel': '#ffffff', '--accent': '#6fb3d2', '--accent-2': '#5aa6c6', '--text': '#203647', '--muted': '#4f6d7a',
+    '--income-color': '#4CAF50', '--expense-color': '#f44336', '--net-positive': '#2196F3', '--net-negative': '#ff9800'
+  },
+  energetic: {
+    '--bg': '#fff7f6', '--panel': '#ffffff', '--accent': '#ff7043', '--accent-2': '#f4511e', '--text': '#2b2b2b', '--muted': '#6b3a2a',
+    '--income-color': '#4CAF50', '--expense-color': '#f44336', '--net-positive': '#2196F3', '--net-negative': '#ff9800'
+  },
+  professional: {
+    '--bg': '#f5f7fb', '--panel': '#ffffff', '--accent': '#2b3a67', '--accent-2': '#1f2b4a', '--text': '#111827', '--muted': '#6b7280',
+    '--income-color': '#4CAF50', '--expense-color': '#f44336', '--net-positive': '#2196F3', '--net-negative': '#ff9800'
+  }
+};
+
+/* Apply initial UI labels and theme */
+function applyLanguage() {
+  const L = LANG[settings.lang] || LANG.ms;
+  document.getElementById('appTitle').textContent = L.appTitle;
+  document.getElementById('labelSummary').textContent = L.summary;
+  document.getElementById('labelTotalIncome').textContent = L.totalIncome;
+  document.getElementById('labelTotalExpenses').textContent = L.totalExpenses;
+  document.getElementById('labelNet').textContent = L.netTotal;
+  document.getElementById('incomeAmount').placeholder = L.enterAmount;
+  document.getElementById('expenseAmount').placeholder = L.enterAmount;
+  document.getElementById('btnAddIncome').textContent = L.add;
+  document.getElementById('btnAddExpense').textContent = L.add;
+  document.getElementById('btnPrint').textContent = L.printReport;
+  // currency labels
+  document.querySelectorAll('#currencyLabel, #currencyLabel2, #currencyLabel3, #currencyLabel4, #currencyLabel5, #currencyLabel6').forEach(el => el.textContent = settings.currency);
+}
+
+function applyTheme() {
+  const theme = THEMES[settings.mood] || THEMES.happy;
+  for (const k in theme) document.documentElement.style.setProperty(k, theme[k]);
+}
+
+/* =====================
+   App logic (lists, add, inline edit, delete)
+   ===================== */
+let data = { income: [], expense: [] };
+
+function formatCurrencyValue(num) {
+  if (!isFinite(num)) return settings.currency + ' 0';
+  // show with thousand separators, 2 decimal places for totals
+  return settings.currency + ' ' + Number(num).toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+}
+function formatCurrencyValueDecimals(num) {
+  return settings.currency + ' ' + Number(num).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+function formatMillionValue(num) {
+  return settings.currency + (Number(num) / 1_000_000).toFixed(2) + ' m';
+}
+
+function openTab(targetId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tabIncome').classList.toggle('active', targetId === 'income');
+  document.getElementById('tabExpenses').classList.toggle('active', targetId === 'expenses');
+  document.getElementById('tabSummary').classList.toggle('active', targetId === 'summary');
+  document.getElementById(targetId).classList.add('active');
+  updateSummary();
+}
+
+// attach tab clicks
+document.getElementById('tabIncome').addEventListener('click', () => openTab('income'));
+document.getElementById('tabExpenses').addEventListener('click', () => openTab('expenses'));
+document.getElementById('tabSummary').addEventListener('click', () => openTab('summary'));
+
+// add buttons
+document.getElementById('btnAddIncome').addEventListener('click', () => addItem('income'));
+document.getElementById('btnAddExpense').addEventListener('click', () => addItem('expense'));
+
+// Theme buttons
+document.querySelectorAll('.theme-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    settings.mood = this.getAttribute('data-theme');
+    applyTheme();
+    saveSettings();
+  });
+});
+
+// Enter key support
+document.getElementById('incomeAmount').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') addItem('income');
+});
+document.getElementById('expenseAmount').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') addItem('expense');
+});
+
+function addItem(type) {
+  const inputId = type === 'income' ? 'incomeAmount' : 'expenseAmount';
+  const raw = document.getElementById(inputId).value;
+  const value = parseFloat(raw);
+  if (!value || value <= 0) { alert('Please enter a valid amount'); return; }
+  data[type].push(value);
+  document.getElementById(inputId).value = '';
+  renderTable(type);
+  updateSummary();
+  saveData();
+}
+
+function renderTable(type) {
+  const tableId = type === 'income' ? 'incomeTable' : 'expenseTable';
+  const containerId = type === 'income' ? 'incomeTableContainer' : 'expenseTableContainer';
+  const emptyStateId = type === 'income' ? 'incomeEmptyState' : 'expenseEmptyState';
+  const table = document.getElementById(tableId);
+  const emptyState = document.getElementById(emptyStateId);
+  
+  // Show/hide empty state
+  if (data[type].length === 0) {
+    table.style.display = 'none';
+    emptyState.style.display = 'block';
+    return;
+  } else {
+    table.style.display = 'table';
+    emptyState.style.display = 'none';
+  }
+  
+  // header
+  table.innerHTML = `
+    <tr>
+      <th>#</th>
+      <th>Amount (${settings.currency})</th>
+      <th>Rounded (${settings.currency} million)</th>
+      <th>Action</th>
+    </tr>
+  `;
+  
+  data[type].forEach((amt, i) => {
+    const row = table.insertRow();
+    row.insertCell(0).textContent = i + 1;
+
+    // Amount cell
+    const amtCell = row.insertCell(1);
+    amtCell.textContent = formatCurrencyValue(amt);
+    amtCell.style.textAlign = 'right';
+    amtCell.setAttribute('data-index', i);
+
+    // Rounded amount cell
+    const roundCell = row.insertCell(2);
+    roundCell.textContent = formatMillionValue(amt);
+    roundCell.style.textAlign = 'right';
+
+    // Actions cell
+    const actions = row.insertCell(3);
+    actions.innerHTML = `
+      <button class='action-btn' onclick='startInlineEdit("${type}", ${i})'>✏️</button> 
+      <button class='action-btn delete' onclick='deleteItem("${type}", ${i})'>🗑️</button>
+    `;
+  });
+}
+
+function startInlineEdit(type, index) {
+  const tableId = type === 'income' ? 'incomeTable' : 'expenseTable';
+  const table = document.getElementById(tableId);
+  const row = table.rows[index + 1]; // +1 because header row
+  const cell = row.cells[1]; // Amount cell
+  const current = data[type][index];
+  cell.innerHTML = `<input type='number' id='edit_${type}_${index}' value='${current}' style='width:140px; text-align:right;' />`;
+  const input = document.getElementById(`edit_${type}_${index}`);
+  input.focus();
+  // save on blur or enter
+  input.addEventListener('blur', () => finishInlineEdit(type, index, input.value));
+  input.addEventListener('keypress', (e) => { if (e.key === 'Enter') finishInlineEdit(type, index, input.value); });
+}
+
+function finishInlineEdit(type, index, newVal) {
+  const value = parseFloat(newVal);
+  if (!value || value <= 0) { alert('Invalid number'); renderTable(type); return; }
+  data[type][index] = value;
+  renderTable(type);
+  updateSummary();
+  saveData();
+}
+
+function deleteItem(type, index) {
+  if (!confirm('Delete this entry?')) return;
+  data[type].splice(index, 1);
+  renderTable(type);
+  updateSummary();
+  saveData();
+}
+
+function updateSummary() {
+  const totalIncome = data.income.reduce((s, v) => s + v, 0);
+  const totalExpenses = data.expense.reduce((s, v) => s + v, 0);
+  const net = totalIncome - totalExpenses;
+  
+  // Update stats cards
+  document.getElementById('totalIncomeStat').textContent = formatCurrencyValueDecimals(totalIncome);
+  document.getElementById('totalExpensesStat').textContent = formatCurrencyValueDecimals(totalExpenses);
+  document.getElementById('netTotalStat').textContent = formatCurrencyValueDecimals(net);
+  
+  document.getElementById('totalIncomeMillionStat').textContent = formatMillionValue(totalIncome);
+  document.getElementById('totalExpensesMillionStat').textContent = formatMillionValue(totalExpenses);
+  document.getElementById('netTotalMillionStat').textContent = formatMillionValue(net);
+  
+  // Update summary table
+  document.getElementById('totalIncome').textContent = formatCurrencyValueDecimals(totalIncome);
+  document.getElementById('totalExpenses').textContent = formatCurrencyValueDecimals(totalExpenses);
+  document.getElementById('netTotal').textContent = formatCurrencyValueDecimals(net);
+  
+  document.getElementById('totalIncomeMillion').textContent = formatMillionValue(totalIncome);
+  document.getElementById('totalExpensesMillion').textContent = formatMillionValue(totalExpenses);
+  document.getElementById('netTotalMillion').textContent = formatMillionValue(net);
+  
+  // Update balance indicator
+  const balanceIndicator = document.getElementById('balanceIndicator');
+  const balanceAmount = document.getElementById('balanceAmount');
+  
+  if (net > 0) {
+    balanceIndicator.className = 'balance-indicator';
+    balanceAmount.className = 'balance-amount balance-positive';
+    balanceAmount.textContent = formatCurrencyValueDecimals(net) + ' Surplus';
+  } else if (net < 0) {
+    balanceIndicator.className = 'balance-indicator negative';
+    balanceAmount.className = 'balance-amount balance-negative';
+    balanceAmount.textContent = formatCurrencyValueDecimals(Math.abs(net)) + ' Deficit';
+  } else {
+    balanceIndicator.className = 'balance-indicator';
+    balanceAmount.className = 'balance-amount';
+    balanceAmount.textContent = formatCurrencyValueDecimals(net) + ' Balanced';
+  }
+  
+  // Update net card class
+  const netCard = document.querySelector('.stat-card.net');
+  const netValue = document.getElementById('netTotalStat');
+  if (net < 0) {
+    netCard.classList.add('negative');
+    netValue.classList.add('negative');
+  } else {
+    netCard.classList.remove('negative');
+    netValue.classList.remove('negative');
+  }
+  
+  // Update comparison chart - FIXED
+  updateComparisonChart(totalIncome, totalExpenses);
+}
+
+function updateComparisonChart(income, expenses) {
+  const maxValue = Math.max(income, expenses) || 1;
+  const incomePercent = Math.max((income / maxValue) * 90, 5); // Minimum 5% height
+  const expensePercent = Math.max((expenses / maxValue) * 90, 5); // Minimum 5% height
+  
+  // Set bar heights with animation
+  setTimeout(() => {
+    document.getElementById('chartIncomeBar').style.height = incomePercent + '%';
+    document.getElementById('chartExpenseBar').style.height = expensePercent + '%';
+  }, 100);
+  
+  // Update values
+  document.getElementById('chartIncomeValue').textContent = formatCurrencyValue(income);
+  document.getElementById('chartExpenseValue').textContent = formatCurrencyValue(expenses);
+}
+
+// Print handler: ensure report title used
+document.getElementById('btnPrint').addEventListener('click', () => {
+  // if no title provided, show a small prompt (not required)
+  if (!document.getElementById('reportTitle').value.trim()) {
+    if (!confirm('No report title set. Continue to print without title?')) return;
+  }
+  window.print();
+});
+
+// Load data from localStorage if available
+function loadData() {
+  const saved = localStorage.getItem('financeTrackerData');
+  if (saved) {
+    try {
+      data = JSON.parse(saved);
+    } catch (e) {
+      console.error('Error loading saved data:', e);
+    }
+  }
+}
+
+// Save data to localStorage
+function saveData() {
+  localStorage.setItem('financeTrackerData', JSON.stringify(data));
+}
+
+// Save settings to localStorage
+function saveSettings() {
+  localStorage.setItem('financeTrackerSettings', JSON.stringify(settings));
+}
+
+// Load settings from localStorage
+function loadSettings() {
+  const saved = localStorage.getItem('financeTrackerSettings');
+  if (saved) {
+    try {
+      Object.assign(settings, JSON.parse(saved));
+    } catch (e) {
+      console.error('Error loading settings:', e);
+    }
+  }
+}
+
+/* Credit protection */
+const creditText = 'Rashid Zainol - JANN Sarawak 2025';
+const creditEl = document.getElementById('credit');
+creditEl.textContent = creditText;
+creditEl.setAttribute('contenteditable','false');
+creditEl.style.pointerEvents = 'none';
+creditEl.style.userSelect = 'none';
+const mo = new MutationObserver(() => { creditEl.textContent = creditText; });
+mo.observe(creditEl, { characterData: true, childList: true, subtree: true });
+creditEl.addEventListener('contextmenu', e => e.preventDefault());
+
+// Initialize app
+function init() {
+  loadSettings();
+  applyLanguage();
+  applyTheme();
+  loadData();
+  renderTable('income');
+  renderTable('expense');
+  updateSummary();
+}
+
+// Start the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
